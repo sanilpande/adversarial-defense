@@ -14,7 +14,7 @@ import numpy as np
 import wandb
 
 from tqdm import tqdm
-from utils import parse_args
+from utils import parse_args, plot_confusion_matrix
 
 DATA_DIR = "/home/sanil/deeplearning/adversarial-detection/cifar10"
 ADV_DIR = "/home/sanil/deeplearning/adversarial-detection/fgsm_cifar10/train/"
@@ -32,9 +32,9 @@ def main():
     model.fc = nn.Linear(model.fc.in_features, 10)
     model.load_state_dict(torch.load("saved_models/res80.pth"))
     
-    # for eps in epsilons:
-    #     generate(eps, model)
-    generate(0.15, model)
+    for eps in epsilons:
+        generate(eps, model)
+    # generate(0.15, model)
     
 
 def generate(epsilon=0.0, model=None, args=None):
@@ -52,6 +52,8 @@ def generate(epsilon=0.0, model=None, args=None):
     running_corrects = 0.0
     adv_corrects = 0.0
     counter = np.zeros(10)
+
+    confusion_matrix = np.zeros((10, 10))
 
     phase = "train"
     # Iterate over data.
@@ -78,7 +80,7 @@ def generate(epsilon=0.0, model=None, args=None):
         adv_outputs = model(perturbed_data)
         _, adv_preds = torch.max(adv_outputs, 1) 
 
-        save_images(perturbed_data, labels, preds, adv_preds, idx_to_class, counter)
+        # save_images(perturbed_data, labels, preds, adv_preds, idx_to_class, counter, confusion_matrix)
 
         # statistics
         rc = torch.sum(preds == labels.data)
@@ -93,8 +95,10 @@ def generate(epsilon=0.0, model=None, args=None):
 
     print('Original Accuracy: {:.4f} \t Adversarial Accuracy: {:.4f}'.format(original_acc, adversarial_acc))
 
+    # labels = [idx_to_class[i] for i in range(10)]
+    # plot_confusion_matrix(cm=confusion_matrix, target_names=labels, normalize=False)
 
-def save_images(images, labels, orig_pred, adv_pred, idx_to_class, counter):
+def save_images(images, labels, orig_pred, adv_pred, idx_to_class, counter, confusion_matrix):
     """Take in tensor of images"""
     invTrans = transforms.Compose([transforms.Normalize(mean = [ 0., 0., 0. ],
                                             std = [ 1/0.247, 1/0.243, 1/0.261 ]),
@@ -116,8 +120,11 @@ def save_images(images, labels, orig_pred, adv_pred, idx_to_class, counter):
             name = name.zfill(4) + ".png"
             save_dir = ADV_DIR + idx_to_class[labels[i].item()] + "/" + name
 
-            plt.imshow(image)
-            plt.imsave(save_dir, image)
+            #confusion matrix update
+            confusion_matrix[labels[i], adv_pred[i]] += 1
+
+            # plt.imshow(image)
+            # plt.imsave(save_dir, image)
         else:
             continue
 

@@ -3,6 +3,8 @@
 import argparse
 import torch
 import numpy as np
+import matplotlib.pyplot as plt
+import itertools
 
 
 def parse_args():
@@ -31,6 +33,58 @@ def parse_args():
     device = torch.device("cuda" if use_cuda else "cpu")
 
     return args, device
+
+
+def plot_confusion_matrix(cm,
+                          target_names,
+                          title='Confusion Matrix',
+                          cmap=None,
+                          normalize=True):
+    """
+    Given a sklearn confusion matrix (cm), make a nice plot.
+    Citiation
+    ---------
+    http://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html
+    https://www.kaggle.com/grfiv4/plot-a-confusion-matrix
+
+    """
+
+    accuracy = np.trace(cm) / float(np.sum(cm))
+    misclass = 1 - accuracy
+
+    if cmap is None:
+        cmap = plt.get_cmap('Blues')
+
+    plt.figure(figsize=(16, 12))
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+
+    if target_names is not None:
+        tick_marks = np.arange(len(target_names))
+        plt.xticks(tick_marks, target_names, rotation=45)
+        plt.yticks(tick_marks, target_names)
+
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+
+
+    thresh = cm.max() / 1.5 if normalize else cm.max() / 2
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        if normalize:
+            plt.text(j, i, "{:0.4f}".format(cm[i, j]),
+                     horizontalalignment="center",
+                     color="white" if cm[i, j] > thresh else "black")
+        else:
+            plt.text(j, i, "{:.0f}".format(cm[i, j]),
+                     horizontalalignment="center",
+                     color="white" if cm[i, j] > thresh else "black")
+
+
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label\nAccuracy={:0.4f}; Misclassification={:0.4f}'.format(accuracy, misclass))
+    plt.show()
 
 
 class RunningAverage():
