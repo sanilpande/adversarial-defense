@@ -15,19 +15,21 @@ from torchvision.utils import make_grid
 
 import matplotlib.pyplot as plt
 
-from generator import Generator
+from pytorch_generator import Generator
 
 import wandb
 
 
 DATA_DIR = "/home/sanil/deeplearning/adversarial-detection/fgsm_cifar10"
 
+
 def train(config=None):
     """Perform the defense against the adversarial dataset."""
     torch.manual_seed(7)
 
-    wandb.init(config=config)
-    config = wandb.config
+    if config is not None:
+        wandb.init(config=config)
+        config = wandb.config
 
     # Define hyperparameters that are not part of hyperparam search
     batch_size  = 512
@@ -192,7 +194,7 @@ def load_generator():
     gen = Generator(1)
     # The Generator example in PyTorch is for 64x64, weights are for 32x32
     gen.main[12] = nn.ConvTranspose2d(64, 3, 1, 1, 0, bias=False)
-    state_dict = torch.load("netG_epoch_199.pth")
+    state_dict = torch.load("pretrained_generator/netG_epoch_199.pth")
     gen.load_state_dict(state_dict)
     gen.eval()
 
